@@ -7,7 +7,7 @@ class FindMask:
         self.inner_heart_lower = [20, 5, 150]
         self.inner_heart_upper = [50, 70, 225]
         self.brown_lower = [0, 60, 60]
-        self.brown_upper = [15, 200, 200]
+        self.brown_upper = [15, 225, 225]
 
     @staticmethod
     def to_gray(image):
