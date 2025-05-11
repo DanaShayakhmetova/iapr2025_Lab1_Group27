@@ -1,0 +1,171 @@
+[
+    {
+        "name": "Amandina.JPG",
+        "lower": [
+            0,
+            0,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            150
+        ]
+    },
+    {
+        "name": "Arabia.JPG",
+        "lower": [
+            0,
+            16,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            148
+        ]
+    },
+    {
+        "name": "Comtesse.JPG",
+        "lower": [
+            22,
+            2,
+            158
+        ],
+        "upper": [
+            85,
+            255,
+            255
+        ]
+    },
+    {
+        "name": "Creme_brulee.JPG",
+        "lower": [
+            0,
+            26,
+            70
+        ],
+        "upper": [
+            179,
+            255,
+            255
+        ]
+    },
+    {
+        "name": "Jelly_Black.JPG",
+        "lower": [
+            0,
+            0,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            165
+        ]
+    },
+    {
+        "name": "Jelly_Milk.JPG",
+        "lower": [
+            0,
+            1,
+            36
+        ],
+        "upper": [
+            179,
+            255,
+            167
+        ]
+    },
+    {
+        "name": "Jelly_White.JPG",
+        "lower": [
+            14,
+            16,
+            40
+        ],
+        "upper": [
+            179,
+            255,
+            255
+        ]
+    },
+    {
+        "name": "Noblesse.JPG",
+        "lower": [
+            0,
+            28,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            153
+        ]
+    },
+    {
+        "name": "Noir_authentique.JPG",
+        "lower": [
+            0,
+            19,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            157
+        ]
+    },
+    {
+        "name": "Passion_au_lait.JPG",
+        "lower": [
+            22,
+            22,
+            98
+        ],
+        "upper": [
+            117,
+            255,
+            198
+        ]
+    },
+    {
+        "name": "Stracciatella.JPG",
+        "lower": [
+            0,
+            14,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            255
+        ]
+    },
+    {
+        "name": "Tentation_noir.JPG",
+        "lower": [
+            0,
+            22,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            162
+        ]
+    },
+    {
+        "name": "Triangolo.JPG",
+        "lower": [
+            0,
+            5,
+            0
+        ],
+        "upper": [
+            179,
+            255,
+            169
+        ]
+    }
+]
