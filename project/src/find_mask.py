@@ -6,7 +6,7 @@ class FindMask:
     def __init__(self):
         self.inner_heart_lower = [10, 5, 150]
         self.inner_heart_upper = [50, 70, 225]
-        self.brown_lower = [0, 60, 60]
+        self.brown_lower = [0, 40, 40]
         self.brown_upper = [10, 180, 180]
         self.highlight_lower = [150, 50, 40]
         self.highlight_upper = [200, 150, 150]
@@ -76,18 +76,18 @@ class FindMask:
         mask_rgb = cv2.bitwise_and(rgb, rgb, mask = mask_choco)
         mask_gray = cv2.cvtColor(mask_rgb, cv2.COLOR_RGB2GRAY)
 
-        blurred = cv2.GaussianBlur(mask_gray, (5, 5), 0)
-        edges = cv2.Canny(blurred, threshold1=10, threshold2=25)
+        # blurred = cv2.GaussianBlur(mask_gray, (5, 5), 0)
+        edges = cv2.Canny(mask_gray, threshold1=10, threshold2=25)
         kernel = np.ones((5, 5), np.uint8)
         edges_closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-        contours, _ = cv2.findContours(edges_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        filtered_contours = FindMask.filter_contours_by_length(contours, 2000, 30000)
+        contours, _ = cv2.findContours(edges_closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        filtered_contours = FindMask.filter_contours_by_length(contours, 500, 100000)
         
         final_mask = np.zeros(image.shape[:2], dtype=np.uint8)
         cv2.drawContours(final_mask, filtered_contours, -1, 255, thickness=cv2.FILLED)  
 
-        kernel = np.ones((10, 10), np.uint8)
-        final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_OPEN, kernel)
+        # kernel = np.ones((10, 10), np.uint8)
+        # final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_OPEN, kernel)
         
         return final_mask
         
