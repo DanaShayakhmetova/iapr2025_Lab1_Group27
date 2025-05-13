@@ -45,3 +45,21 @@ class Visualization:
 
         fig.canvas.mpl_connect("motion_notify_event", on_mouse_move)
         plt.show()
+
+    def draw_detected_circle(image, circles):
+        """Draw the circles found by find_Hough_circle function for visualization"""
+        output = image.copy()
+
+        if circles is not None:
+            circles = np.int16(np.around(circles))
+            for (x, y, r) in circles[0, :]:
+                cv2.circle(output, (x, y), r, (0, 255, 0), 2)
+                cv2.circle(output, (x, y), 2, (0, 0, 255), 3)
+            
+        output_rgb = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
+
+        plt.figure(figsize=(10, 8)) 
+        plt.imshow(output_rgb)
+        plt.axis('off')
+        plt.title("Detected Circles")
+        plt.show()
