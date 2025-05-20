@@ -1,8 +1,3 @@
-# this was in here before and idk what to do with it lol 
-# testing the ref IDS
-# from src.constants import ID2NAME, NAME2ID
-# print(ID2NAME[4])  # should say 'Jelly_black'
-
 ####################################################################################################
 #Imports 
 # general 
@@ -26,9 +21,6 @@ from collections import Counter
 ####################################################################################################
 
 # DoG Segmentation 
-# I commented out the plotting. It was used for debugging. 
-# Area thresholds were found by analyzing out roboflow boundary box sizes.
-# Also, trial and error with the train image segmentations since roboflow was perfect segmentation. 
 
 def extract_chocolate_segments(
     image_path, 
@@ -205,34 +197,32 @@ import os
 import cv2
 import pandas as pd
 
-# --- Configuration ---
 IMAGE_DIR = 'data/train'
 LABEL_DIR = 'data/train_labels'
 SEGMENTS_DIR = 'src/yolo_bounding_boxes/chocolate_segments'
 DEBUG_BBOX_DIR = 'src/yolo_bounding_boxes/chocolate_debug_bboxes_padded_debugrun'
 JPEG_QUALITY = 95
-VISUALIZE_BOUNDING_BOXES = True
+VISUALIZE_BOUNDING_BOXES = False #this was for visualizations and debugging
 PADDING_PIXELS = 20
 
 # Only run if segmentation output doesn't already exist
 if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
-    # --- Initialization ---
+
     os.makedirs(SEGMENTS_DIR, exist_ok=True)
     os.makedirs(DEBUG_BBOX_DIR, exist_ok=True)
 
     labels_list = []
     segment_counter = 0
 
-    print("--- SEGMENTATION SCRIPT (WITH PADDING & VISUALIZATION) ---")
-    print(f"Reading images from: {IMAGE_DIR}")
-    print(f"Reading labels from: {LABEL_DIR}")
-    print(f"Saving segments to: {SEGMENTS_DIR} (JPEG Quality: {JPEG_QUALITY})")
-    print(f"Adding {PADDING_PIXELS}px padding to each side of the bounding box.")
-    if VISUALIZE_BOUNDING_BOXES:
-        print(f"Saving debug bounding box images to: {DEBUG_BBOX_DIR}")
-    print("-" * 50)
+    # print(f"Reading images from: {IMAGE_DIR}")
+    # print(f"Reading labels from: {LABEL_DIR}")
+    # print(f"Saving segments to: {SEGMENTS_DIR} (JPEG Quality: {JPEG_QUALITY})")
+    # print(f"Adding {PADDING_PIXELS}px padding to each side of the bounding box.")
+    # if VISUALIZE_BOUNDING_BOXES:
+    #     print(f"Saving debug bounding box images to: {DEBUG_BBOX_DIR}")
+    # print("-" * 50)
 
-    # --- Processing Loop ---
+
     for img_name in os.listdir(IMAGE_DIR):
         if not img_name.lower().endswith(('.jpg', '.png', '.jpeg')):
             continue
@@ -247,7 +237,6 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             continue
 
         h_img, w_img = img.shape[:2]
-        print(f"\n[Image: {img_name}] Loaded. Dimensions: {w_img}x{h_img}")
 
         if VISUALIZE_BOUNDING_BOXES:
             img_with_boxes = img.copy()
@@ -263,11 +252,11 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             print(f"  [Image: {img_name}] Label file {label_path} is empty. Skipping image.")
             continue
 
-        print(f"  [Image: {img_name}] Found {len(lines)} lines in label file: {label_path}")
+        # print(f"  [Image: {img_name}] Found {len(lines)} lines in label file: {label_path}")
         found_valid_segment_in_image = False
 
         for i, line in enumerate(lines):
-            print(f"    [L{i+1}] Processing line: '{line.strip()}'")
+            # print(f"    [L{i+1}] Processing line: '{line.strip()}'")
             parts = line.strip().split()
 
             if len(parts) != 5:
@@ -293,19 +282,16 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             y1_tight = int(y_center_abs - box_h_abs / 2)
             x2_tight = int(x_center_abs + box_w_abs / 2)
             y2_tight = int(y_center_abs + box_h_abs / 2)
-            print(f"      [L{i+1}] Tight BBox (x1,y1,x2,y2 before padding/clip): {x1_tight}, {y1_tight}, {x2_tight}, {y2_tight}")
 
             x1_padded = x1_tight - PADDING_PIXELS
             y1_padded = y1_tight - PADDING_PIXELS
             x2_padded = x2_tight + PADDING_PIXELS
             y2_padded = y2_tight + PADDING_PIXELS
-            print(f"      [L{i+1}] Padded BBox (x1p,y1p,x2p,y2p before clip): {x1_padded}, {y1_padded}, {x2_padded}, {y2_padded}")
 
             x1_clip = max(0, x1_padded)
             y1_clip = max(0, y1_padded)
             x2_clip = min(w_img, x2_padded)
             y2_clip = min(h_img, y2_padded)
-            print(f"      [L{i+1}] Final Clipped BBox (x1c,y1c,x2c,y2c): {x1_clip}, {y1_clip}, {x2_clip}, {y2_clip}")
 
             current_crop_w = x2_clip - x1_clip
             current_crop_h = y2_clip - y1_clip
@@ -320,10 +306,7 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
 
             actual_cropped_w = crop.shape[1]
             actual_cropped_h = crop.shape[0]
-            print(f"      [L{i+1}] Actual Cropped Segment Dimensions: W={actual_cropped_w}, H={actual_cropped_h}")
-            if actual_cropped_w < 50 or actual_cropped_h < 50:
-                print(f"      [L{i+1}] ----> Note: This crop is relatively small (<50px in one dimension).")
-
+        
             if VISUALIZE_BOUNDING_BOXES:
                 cv2.rectangle(img_with_boxes, (x1_clip, y1_clip), (x2_clip, y2_clip), (0, 255, 0), 2)
                 label_text = f"c{class_id}_s{segment_counter}"
@@ -341,7 +324,7 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             except Exception as e:
                 print(f"      [L{i+1}] Error saving segment {segment_save_path}: {e}")
 
-            print("-" * 20)
+            # print("-" * 20)
 
         if VISUALIZE_BOUNDING_BOXES and found_valid_segment_in_image:
             debug_img_path = os.path.join(DEBUG_BBOX_DIR, f"{base_name}_bboxes_padded_debug.jpg")
@@ -356,35 +339,32 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
 
     df_labels = pd.DataFrame(labels_list)
     if not df_labels.empty:
-        csv_save_path = 'yolo_bounding_boxes/segment_labels.csv'
+        csv_save_path = 'src/yolo_bounding_boxes/segment_labels.csv'
         df_labels.to_csv(csv_save_path, index=False)
-        print(f"\n--- SCRIPT FINISHED ---")
         print(f"Saved {len(df_labels)} segments to '{SEGMENTS_DIR}'")
         print(f"Labels saved to '{csv_save_path}'.")
         if VISUALIZE_BOUNDING_BOXES:
             print(f"Debug images saved in '{DEBUG_BBOX_DIR}'.")
     else:
-        print("\n--- SCRIPT FINISHED ---")
         print("No segments were processed or saved.")
 else:
-    print(f"Segmentation already exists in '{SEGMENTS_DIR}' and debug images in '{DEBUG_BBOX_DIR}'. Skipping script.")
+    print(f"Segmentation already exists in '{SEGMENTS_DIR}'. Skipping script.")
 
 ####################################################################################################
 
 # Classifier Helpers
 
-# Parameters
 RESIZE_DIM = (256, 256)
 LBP_RADIUS = 1
 LBP_N_POINTS = 8 * LBP_RADIUS
 DEFAULT_BORDER_TYPE = cv2.BORDER_REFLECT_101 # Or cv2.BORDER_CONSTANT
 
-# --- SCRIPT EXECUTION SETTINGS ---
-ENABLE_AUGMENTATION = True 
-RUN_GRID_SEARCH = True    # *** SET TO TRUE TO RUN HYPERPARAMETER TUNING ***
-                           # Set to False to use default RF params for faster runs
 
-# --- Utility Functions ---
+ENABLE_AUGMENTATION = True 
+RUN_GRID_SEARCH = True    
+                       
+
+# helpers 
 def resize_and_pad(img, desired_size, border_type=DEFAULT_BORDER_TYPE, pad_color=(0, 0, 0)):
     old_h, old_w = img.shape[:2]
     desired_h, desired_w = desired_size
@@ -416,7 +396,7 @@ def augment_image(image):
     # Brightness Adjustment
     hsv = cv2.cvtColor(augmented_image, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
-    value_change = random.randint(-30, 30) # More conservative range
+    value_change = random.randint(-30, 30) # More conservative range to mimic train image variations
     v_new = cv2.add(v, value_change)
     v_new = np.clip(v_new, 0, 255)
     final_hsv = cv2.merge((h, s, v_new))
@@ -428,24 +408,16 @@ def augment_image(image):
         (h_orig, w_orig) = augmented_image.shape[:2]
         center = (w_orig // 2, h_orig // 2)
         M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        # Use original border type for rotation padding
         border_val_for_rotation = (0,0,0) if DEFAULT_BORDER_TYPE == cv2.BORDER_CONSTANT else None
         if border_val_for_rotation:
              augmented_image = cv2.warpAffine(augmented_image, M, (w_orig, h_orig), borderMode=DEFAULT_BORDER_TYPE, borderValue=border_val_for_rotation)
         else:
              augmented_image = cv2.warpAffine(augmented_image, M, (w_orig, h_orig), borderMode=DEFAULT_BORDER_TYPE)
 
-
-    # Add more augmentations here if needed:
-    # - Contrast
-    # - Small zooms/shifts (cv2.warpAffine with translation matrix)
-    # - Gaussian blur (cv2.GaussianBlur)
-
     return augmented_image
 
-# --- Feature Extraction Functions ---
+# Feature Extraction Helpers
 
-# old one
 def remove_background(img_bgr):
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     mask = cv2.adaptiveThreshold(gray, 255,
@@ -473,22 +445,19 @@ def extract_hog(img_bgr_masked, pixels_per_cell=(16,16), cells_per_block=(2,2)):
     expected_hog_len = 8100 # Based on (256,256) RESIZE_DIM, (16,16) ppc, (2,2) cpb, 9 orientations
 
     if gray.shape[0] < min_height or gray.shape[1] < min_width:
-        # print(f"Warning: Image shape {gray.shape} too small for HOG. Returning zeros.")
         return np.zeros(expected_hog_len)
 
-    # Get only the feature vector
+    # only the feature vector
     features = hog(gray,
                    orientations=9,
                    pixels_per_cell=pixels_per_cell,
                    cells_per_block=cells_per_block,
                    block_norm='L2-Hys',
-                   visualize=False,       # Ensure visualize is False to get only features
-                   feature_vector=True)   # Ensure feature_vector is True
+                   visualize=False,       
+                   feature_vector=True) 
 
-    # Ensure consistent length (handle potential edge cases from skimage.hog)
+    # making sure length is consistent 
     if features.shape[0] != expected_hog_len:
-        # This case should be rare with feature_vector=True and sufficient image size
-        # print(f"Warning: HOG feature length mismatch. Expected {expected_hog_len}, got {features.shape[0]}. Adjusting.")
         if features.shape[0] < expected_hog_len:
             features = np.pad(features, (0, expected_hog_len - features.shape[0]), 'constant')
         else:
@@ -526,7 +495,6 @@ def extract_color_features(img_bgr_masked):
 
 def extract_all_features(img_bgr_segment, hog_pixels_per_cell=(16,16), hog_cells_per_block=(2,2)):
     if img_bgr_segment is None or img_bgr_segment.shape[0] == 0 or img_bgr_segment.shape[1] == 0:
-        # This case should be filtered out by load_segments_and_labels
         raise ValueError("Invalid segment passed to extract_all_features")
 
     img_resized_padded = resize_and_pad(img_bgr_segment, RESIZE_DIM)
@@ -567,7 +535,6 @@ else:
 # Reject unwanted colour/empty/small segments 
 
 def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=None):
-    # Convert to HSV and compute masks
     hsv = cv2.cvtColor(segment, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
     total_pixels = h.size
@@ -585,8 +552,6 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
     brown_ratio = np.sum(masks["brown"]) / total_pixels
 
     # 1. Reject if too small AND brown is insufficient
-    # smallest we got are jellies and so just in case we check for brown so we dont get rid of them by acc
-    # also we dont check for white because our model segments large chunks for white because of noise and etc.
     if (segment.shape[0] < 300 or segment.shape[1] < 300) and brown_ratio < 0.2:
         if show_plot:
             plt.figure(figsize=(2.5, 2.5))
@@ -598,8 +563,6 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
         return True, "too_small_low_brown"
 
     # 2. Reject blue segments only if brown is insufficient
-    # because of peacock and bluebox bgs, we had to be careful not to reject chocolates on blue bgs
-    # we mostly wanted to get rid of empty segments of bg and those fake objects
     for name in ["blue"]:
         mask = masks[name]
         proportion = np.sum(mask) / total_pixels
@@ -614,9 +577,6 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
             return True, name + "_low_brown"
     
     # 3. Reject black segments only if brown is insufficient
-    # we wanna get rid of those fake chocolates that are just black boxes
-    # but the dark chocos like jelly black and noir authentique would also get selected without the brown proportion check 
-    # since even dark choco has more brown/warm undertones than just black 
     for name in ["black"]:
         mask = masks[name]
         proportion = np.sum(mask) / total_pixels
@@ -631,7 +591,6 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
             return True, name + "_low_brown"
     
     # 4. Reject yellow and green 
-    # luckily we dont have any yellow or green backgrounds so we could go easier on the threshold 
     for name in ["yellow", "green"]:
         mask = masks[name]
         proportion = np.sum(mask) / total_pixels
@@ -648,7 +607,6 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
     # 3. Reject plain/uniform segments based on low color variance
     std_dev = np.std(segment)
     if std_dev < 15: 
-        # trial and error got us 15 so idk what stat you want :(
         if show_plot:
             plt.figure(figsize=(2.5, 2.5))
             plt.imshow(cv2.cvtColor(segment, cv2.COLOR_BGR2RGB))
@@ -700,7 +658,7 @@ for fname in os.listdir("data/test"):
 
         reject, reason = reject_unwanted_colors(seg, color_thresh=0.75, show_plot=False, index=i)
         if reject:
-            print(f"  Segment {i} in {fname} rejected due to {reason}.")
+            # print(f"  Segment {i} in {fname} rejected due to {reason}.")
             continue
 
         try:
@@ -731,11 +689,11 @@ for fname in os.listdir("data/test"):
 
 # Save to CSV
 df_results = pd.DataFrame(results)
-df_results.to_csv("chocolate_test_predictions.csv", index=False)
+df_results.to_csv("submission.csv", index=False)
 
 # change header
 import csv
-file_path = 'chocolate_test_predictions.csv'
+file_path = 'submission.csv'
 new_header = [
     "id", "Jelly White", "Jelly Milk", "Jelly Black", "Amandina", "Crème brulée",
     "Triangolo", "Tentation noir", "Comtesse", "Noblesse", "Noir authentique",
@@ -749,6 +707,6 @@ with open(file_path, 'w', newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
     writer.writerows(rows)
 
-print("Predictions saved to chocolate_test_predictions.csv")
+print("Predictions saved to submission.csv")
 ####################################################################################################
   
