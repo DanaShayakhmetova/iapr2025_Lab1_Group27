@@ -249,8 +249,8 @@ def load_segments_and_labels(segment_folder, labels_csv, is_training=False):
 
 # --- Main Training Script ---
 if __name__ == '__main__':
-    train_segment_folder = "yolo_bounding_boxes/chocolate_segments" # Use the padded segments
-    train_labels_csv = "yolo_bounding_boxes/segment_labels.csv"         # And their corresponding labels
+    train_segment_folder = "../src/yolo_bounding_boxes/chocolate_segments" # Use the padded segments
+    train_labels_csv = "../src/yolo_bounding_boxes/segment_labels.csv"         # And their corresponding labels
 
     print("--- Starting Training Process ---")
 
