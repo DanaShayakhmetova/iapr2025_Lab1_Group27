@@ -221,7 +221,6 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
     # print(f"Adding {PADDING_PIXELS}px padding to each side of the bounding box.")
     # if VISUALIZE_BOUNDING_BOXES:
     #     print(f"Saving debug bounding box images to: {DEBUG_BBOX_DIR}")
-    # print("-" * 50)
 
 
     for img_name in os.listdir(IMAGE_DIR):
@@ -325,7 +324,6 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             except Exception as e:
                 print(f"      [L{i+1}] Error saving segment {segment_save_path}: {e}")
 
-            # print("-" * 20)
 
         if VISUALIZE_BOUNDING_BOXES and found_valid_segment_in_image:
             debug_img_path = os.path.join(DEBUG_BBOX_DIR, f"{base_name}_bboxes_padded_debug.jpg")
@@ -336,7 +334,6 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
                 print(f"  [Image: {img_name}] Error saving debug image: {e}")
         elif VISUALIZE_BOUNDING_BOXES and not found_valid_segment_in_image:
             print(f"  [Image: {img_name}] No valid segments found. No debug image saved.")
-        print("-" * 50)
 
     df_labels = pd.DataFrame(labels_list)
     if not df_labels.empty:
@@ -598,7 +595,7 @@ def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
 
 ####################################################################################################
 
-# Train Classifier it doesnt exist 
+# Train Classifier if it doesnt exist 
 
 import os
 
@@ -606,10 +603,10 @@ model_path = 'classification_model/model.joblib'
 scaler_path = 'classification_model/scaler.joblib'
 pca_path = 'classification_model/pca.joblib'
 
-training_script = 'py_scrips/classification_training.py'
+training_script = 'py_scripts/classification_training.py'
 
 if not (os.path.exists(model_path) and os.path.exists(scaler_path) and os.path.exists(pca_path)):
-    print("One components not found. Running training...")
+    print("One component is not found. Running training...")
     os.system(f'python {training_script}')
 else:
     print("All components found. Skipping training.")

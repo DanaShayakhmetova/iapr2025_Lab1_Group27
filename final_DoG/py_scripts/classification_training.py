@@ -243,9 +243,19 @@ def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
 
 # --- Main Training Script ---
 if __name__ == '__main__':
-    train_segment_folder = "../src/yolo_bounding_boxes/chocolate_segments" 
-    train_labels_csv = "../src/yolo_bounding_boxes/segment_labels.csv" 
-    output_model_dir = "../classification_model"                       
+
+    # idk why but this works only if you run it through main.py
+    train_segment_folder = "src/yolo_bounding_boxes/chocolate_segments" 
+    train_labels_csv = "src/yolo_bounding_boxes/segment_labels.csv" 
+    output_model_dir = "classification_model"   
+
+
+    # if you do classification_training.py directly, then you have to change these file paths
+    # train_segment_folder = "../src/yolo_bounding_boxes/chocolate_segments" 
+    # train_labels_csv = "../src/yolo_bounding_boxes/segment_labels.csv" 
+    # output_model_dir = "../classification_model"        
+
+
     os.makedirs(output_model_dir, exist_ok=True)
 
     print("--- Starting Training Process ---")
@@ -319,9 +329,14 @@ if __name__ == '__main__':
 
     print("\n[PHASE 6: Saving Model, Scaler, and PCA Transformer]")    
 
-    model_filename = "../classification_model/model.joblib"
-    scaler_filename = "../classification_model/scaler.joblib"
-    pca_filename = "../classification_model/pca.joblib"
+    model_filename = "classification_model/model.joblib"
+    scaler_filename = "classification_model/scaler.joblib"
+    pca_filename = "classification_model/pca.joblib"
+
+    # same thing here:
+    # model_filename = "../classification_model/model.joblib"
+    # scaler_filename = "../classification_model/scaler.joblib"
+    # pca_filename = "../classification_model/pca.joblib"
 
     joblib.dump(clf, model_filename)
     joblib.dump(scaler, scaler_filename)
