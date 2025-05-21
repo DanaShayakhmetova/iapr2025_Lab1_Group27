@@ -1,5 +1,6 @@
 ####################################################################################################
 #Imports 
+
 # general 
 import cv2
 import numpy as np
@@ -14,9 +15,9 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, accuracy_score
 import random # For augmentation
-import joblib
+import pickle
+
 # CSV 
-from collections import Counter
 import csv 
 
 ####################################################################################################
@@ -201,27 +202,16 @@ import pandas as pd
 IMAGE_DIR = 'data/train'
 LABEL_DIR = 'data/train_labels'
 SEGMENTS_DIR = 'src/yolo_bounding_boxes/chocolate_segments'
-DEBUG_BBOX_DIR = 'src/yolo_bounding_boxes/chocolate_debug_bboxes_padded_debugrun'
 JPEG_QUALITY = 95
-VISUALIZE_BOUNDING_BOXES = False #this was for visualizations and debugging
 PADDING_PIXELS = 20
 
 # Only run if segmentation output doesn't already exist
-if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
-
+if not os.path.exists(SEGMENTS_DIR):
+    print("Starting YOLO Bounding Box Extraction.")
     os.makedirs(SEGMENTS_DIR, exist_ok=True)
-    os.makedirs(DEBUG_BBOX_DIR, exist_ok=True)
 
     labels_list = []
     segment_counter = 0
-
-    # print(f"Reading images from: {IMAGE_DIR}")
-    # print(f"Reading labels from: {LABEL_DIR}")
-    # print(f"Saving segments to: {SEGMENTS_DIR} (JPEG Quality: {JPEG_QUALITY})")
-    # print(f"Adding {PADDING_PIXELS}px padding to each side of the bounding box.")
-    # if VISUALIZE_BOUNDING_BOXES:
-    #     print(f"Saving debug bounding box images to: {DEBUG_BBOX_DIR}")
-
 
     for img_name in os.listdir(IMAGE_DIR):
         if not img_name.lower().endswith(('.jpg', '.png', '.jpeg')):
@@ -238,9 +228,6 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
 
         h_img, w_img = img.shape[:2]
 
-        if VISUALIZE_BOUNDING_BOXES:
-            img_with_boxes = img.copy()
-
         if not os.path.exists(label_path):
             print(f"  [Image: {img_name}] Label file not found: {label_path}. Skipping image.")
             continue
@@ -252,11 +239,7 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             print(f"  [Image: {img_name}] Label file {label_path} is empty. Skipping image.")
             continue
 
-        # print(f"  [Image: {img_name}] Found {len(lines)} lines in label file: {label_path}")
-        found_valid_segment_in_image = False
-
         for i, line in enumerate(lines):
-            # print(f"    [L{i+1}] Processing line: '{line.strip()}'")
             parts = line.strip().split()
 
             if len(parts) != 5:
@@ -278,40 +261,24 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
             box_w_abs = box_w_norm * w_img
             box_h_abs = box_h_norm * h_img
 
-            x1_tight = int(x_center_abs - box_w_abs / 2)
-            y1_tight = int(y_center_abs - box_h_abs / 2)
-            x2_tight = int(x_center_abs + box_w_abs / 2)
-            y2_tight = int(y_center_abs + box_h_abs / 2)
+            x1 = int(x_center_abs - box_w_abs / 2) - PADDING_PIXELS
+            y1 = int(y_center_abs - box_h_abs / 2) - PADDING_PIXELS
+            x2 = int(x_center_abs + box_w_abs / 2) + PADDING_PIXELS
+            y2 = int(y_center_abs + box_h_abs / 2) + PADDING_PIXELS
 
-            x1_padded = x1_tight - PADDING_PIXELS
-            y1_padded = y1_tight - PADDING_PIXELS
-            x2_padded = x2_tight + PADDING_PIXELS
-            y2_padded = y2_tight + PADDING_PIXELS
+            x1_clip = max(0, x1)
+            y1_clip = max(0, y1)
+            x2_clip = min(w_img, x2)
+            y2_clip = min(h_img, y2)
 
-            x1_clip = max(0, x1_padded)
-            y1_clip = max(0, y1_padded)
-            x2_clip = min(w_img, x2_padded)
-            y2_clip = min(h_img, y2_padded)
-
-            current_crop_w = x2_clip - x1_clip
-            current_crop_h = y2_clip - y1_clip
-            if current_crop_w <= 0 or current_crop_h <= 0:
-                print(f"      [L{i+1}] Warning: Invalid BBox after clipping. W={current_crop_w}, H={current_crop_h}. Skipping.")
+            if x2_clip <= x1_clip or y2_clip <= y1_clip:
+                print(f"      [L{i+1}] Warning: Invalid BBox after clipping. Skipping.")
                 continue
 
             crop = img[y1_clip:y2_clip, x1_clip:x2_clip]
             if crop.size == 0:
                 print(f"      [L{i+1}] Warning: Resulting crop is empty. Skipping.")
                 continue
-
-            actual_cropped_w = crop.shape[1]
-            actual_cropped_h = crop.shape[0]
-        
-            if VISUALIZE_BOUNDING_BOXES:
-                cv2.rectangle(img_with_boxes, (x1_clip, y1_clip), (x2_clip, y2_clip), (0, 255, 0), 2)
-                label_text = f"c{class_id}_s{segment_counter}"
-                cv2.putText(img_with_boxes, label_text, (x1_clip, y1_clip - 7),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
             segment_fname = f"{base_name}_segment_{segment_counter}.jpg"
             segment_save_path = os.path.join(SEGMENTS_DIR, segment_fname)
@@ -320,20 +287,8 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
                 cv2.imwrite(segment_save_path, crop, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
                 labels_list.append({'filename': segment_fname, 'label': class_id})
                 segment_counter += 1
-                found_valid_segment_in_image = True
             except Exception as e:
                 print(f"      [L{i+1}] Error saving segment {segment_save_path}: {e}")
-
-
-        if VISUALIZE_BOUNDING_BOXES and found_valid_segment_in_image:
-            debug_img_path = os.path.join(DEBUG_BBOX_DIR, f"{base_name}_bboxes_padded_debug.jpg")
-            try:
-                cv2.imwrite(debug_img_path, img_with_boxes)
-                print(f"  [Image: {img_name}] Saved debug image to: {debug_img_path}")
-            except Exception as e:
-                print(f"  [Image: {img_name}] Error saving debug image: {e}")
-        elif VISUALIZE_BOUNDING_BOXES and not found_valid_segment_in_image:
-            print(f"  [Image: {img_name}] No valid segments found. No debug image saved.")
 
     df_labels = pd.DataFrame(labels_list)
     if not df_labels.empty:
@@ -341,12 +296,24 @@ if not (os.path.exists(SEGMENTS_DIR) and os.path.exists(DEBUG_BBOX_DIR)):
         df_labels.to_csv(csv_save_path, index=False)
         print(f"Saved {len(df_labels)} segments to '{SEGMENTS_DIR}'")
         print(f"Labels saved to '{csv_save_path}'.")
-        if VISUALIZE_BOUNDING_BOXES:
-            print(f"Debug images saved in '{DEBUG_BBOX_DIR}'.")
+
+        # Counting class occurrences without collections after that ED post.
+        class_counts = {}
+        for entry in labels_list:
+            label = entry['label']
+            if label in class_counts:
+                class_counts[label] += 1
+            else:
+                class_counts[label] = 1
+
+        print("\nClass-wise segment counts:")
+        for class_id, count in sorted(class_counts.items()):
+            print(f"  Class {class_id}: {count} segments")
     else:
         print("No segments were processed or saved.")
 else:
     print(f"Segmentation already exists in '{SEGMENTS_DIR}'. Skipping script.")
+
 
 ####################################################################################################
 
@@ -362,8 +329,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
-import joblib
-# import matplotlib.pyplot as plt # Uncomment if you need to debug image processing
 
 # Parameters
 RESIZE_DIM = (256, 256)
@@ -371,25 +336,21 @@ LBP_RADIUS = 1
 LBP_N_POINTS = 8 * LBP_RADIUS
 DEFAULT_BORDER_TYPE = cv2.BORDER_REFLECT_101
 
-# --- SCRIPT EXECUTION SETTINGS (MATCHING THE FILENAME and YOUR OBSERVED RESULTS) ---
 ENABLE_AUGMENTATION = True
-RUN_GRID_SEARCH = True     # This must be True to get GridSearchCV results
-ENABLE_BACKGROUND_REMOVAL = True # From "_bg" in filename
+RUN_GRID_SEARCH = True    
+ENABLE_BACKGROUND_REMOVAL = True 
 
-# --- BACKGROUND REMOVAL PARAMETERS (MATCHING THE FILENAME) ---
-BG_REMOVE_ADAPTIVE_BLOCK_SIZE = 71 # From "block71"
-BG_REMOVE_ADAPTIVE_C = 5           # From "c5"
-BG_REMOVE_MORPH_KERNEL_SIZE = (9,9) # From "k9"
+BG_REMOVE_ADAPTIVE_BLOCK_SIZE = 71 
+BG_REMOVE_ADAPTIVE_C = 5          
+BG_REMOVE_MORPH_KERNEL_SIZE = (9,9) 
 
-# --- HOG PARAMETERS (MATCHING THE FILENAME) ---
-HOG_PIXELS_PER_CELL = (24, 24) # From "hog24ppc"
-HOG_CELLS_PER_BLOCK = (2, 2)   # Your standard setup
-HOG_ORIENTATIONS = 9           # Your standard setup
+HOG_PIXELS_PER_CELL = (24, 24) 
+HOG_CELLS_PER_BLOCK = (2, 2) 
+HOG_ORIENTATIONS = 9          
 
-# --- PCA PARAMETER (MATCHING THE FILENAME) ---
-N_PCA_COMPONENTS = 0.95 # From "pca0.95"
+N_PCA_COMPONENTS = 0.95 
 
-# --- Utility Functions ---
+# Utility functions
 def resize_and_pad(img, desired_size, border_type=DEFAULT_BORDER_TYPE, pad_color=(0, 0, 0)):
     old_h, old_w = img.shape[:2]
     desired_h, desired_w = desired_size
@@ -436,7 +397,7 @@ def augment_image(image):
              augmented_image = cv2.warpAffine(augmented_image, M, (w_orig, h_orig), borderMode=DEFAULT_BORDER_TYPE)
     return augmented_image
 
-# --- Feature Extraction Functions ---
+# Feature Extraction Functions
 def remove_background(img_bgr,
                       adaptive_block_size=BG_REMOVE_ADAPTIVE_BLOCK_SIZE,
                       adaptive_c=BG_REMOVE_ADAPTIVE_C,
@@ -554,7 +515,7 @@ def extract_all_features(img_bgr_segment, hog_pixels_per_cell, hog_cells_per_blo
     features = np.concatenate([hog_feat, lbp_feat, fourier_feat, color_feat])
     return features
 
-# --- Data Loading ---
+# Loading data functions
 def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
                              hog_ppc=HOG_PIXELS_PER_CELL, hog_cpb=HOG_CELLS_PER_BLOCK, hog_orient=HOG_ORIENTATIONS):
     df = pd.read_csv(labels_csv)
@@ -599,9 +560,9 @@ def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
 
 import os
 
-model_path = 'classification_model/model.joblib'
-scaler_path = 'classification_model/scaler.joblib'
-pca_path = 'classification_model/pca.joblib'
+model_path = 'classification_model/model.pkl'
+scaler_path = 'classification_model/scaler.pkl'
+pca_path = 'classification_model/pca.pkl'
 
 training_script = 'py_scripts/classification_training.py'
 
@@ -681,7 +642,7 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
             if show_plot:
                 plt.figure(figsize=(2.5, 2.5))
                 plt.imshow(cv2.cvtColor(segment, cv2.COLOR_BGR2RGB))
-                plt.title(f"Rejected #{index}: {name}, yellow={proportion:.1%}")
+                plt.title(f"Rejected #{index}: {name}, proportion={proportion:.1%}")
                 plt.axis('off')
                 plt.tight_layout()
                 plt.show()
@@ -703,29 +664,38 @@ def reject_unwanted_colors(segment, color_thresh=0.5, show_plot=False, index=Non
 
 ####################################################################################################
 
-# Final run + CSV Creation 
+# Producing final submission.csv
 
+# HOG and background removal parameters
 HOG_PIXELS_PER_CELL_TEST = (24, 24)  
 HOG_CELLS_PER_BLOCK_TEST = (2, 2)    
 HOG_ORIENTATIONS_TEST = 9           
 
-# Background removal parameters 
 ENABLE_BACKGROUND_REMOVAL = True 
 BG_REMOVE_ADAPTIVE_BLOCK_SIZE = 71
 BG_REMOVE_ADAPTIVE_C = 5
 BG_REMOVE_MORPH_KERNEL_SIZE = (9,9)
 
-# model, scaler, and pca
-clf_path = "classification_model/model.joblib"
-scaler_path = "classification_model/scaler.joblib"
-pca_path = "classification_model/pca.joblib"
-
+# model, scaler, and pca paths
+clf_path = "classification_model/model.pkl"
+scaler_path = "classification_model/scaler.pkl"
+pca_path = "classification_model/pca.pkl"
 
 try:
-    clf_loaded = joblib.load(clf_path)
-    scaler_loaded = joblib.load(scaler_path)
-    pca_loaded = joblib.load(pca_path) 
-    print("Classifier, Scaler, and PCA transformer loaded successfully.")
+    # since joblib wasnt permitted
+    # clf_loaded = joblib.load(clf_path)
+    # scaler_loaded = joblib.load(scaler_path)
+    # pca_loaded = joblib.load(pca_path) 
+
+    with open(clf_path, 'rb') as f:
+        clf_loaded = pickle.load(f)
+    with open(scaler_path, 'rb') as f:
+        scaler_loaded = pickle.load(f)
+    with open(pca_path, 'rb') as f:
+        pca_loaded = pickle.load(f)
+
+
+    print("Classifier, Scaler, and PCA transformer loaded successfully. \n CSV creation process will take about 3 mins.")
 except FileNotFoundError as e:
     print(f"Error: Could not find one or more model files: {e}")
     print("Ensure paths are correct. The script expects the PCA model to be saved.")
@@ -733,7 +703,6 @@ except FileNotFoundError as e:
 except Exception as e:
     print(f"An error occurred loading models: {e}")
     exit()
-
 
 # Label mapping
 label_mapping = {
@@ -748,8 +717,8 @@ ordered_labels = ['Jelly_white', 'Jelly_milk', 'Jelly_black', 'Amandina', 'Creme
 # Final prediction storage
 results = []
 
-# Process each test image
-test_data_folder = "data/test" 
+# Test data folder path
+test_data_folder = "data/test"
 if not os.path.exists(test_data_folder):
     print(f"Error: Test data folder not found at '{test_data_folder}'")
     exit()
@@ -759,7 +728,7 @@ for fname in os.listdir(test_data_folder):
         continue
 
     image_path = os.path.join(test_data_folder, fname)
-    segments = extract_chocolate_segments(image_path)
+    segments = extract_chocolate_segments(image_path)  
 
     predicted_labels_for_image = []
 
@@ -770,38 +739,35 @@ for fname in os.listdir(test_data_folder):
         results.append(result_row)
         continue
 
-
     for i, seg in enumerate(segments):
         if seg is None or seg.shape[0] == 0 or seg.shape[1] == 0:
             continue
 
-        # Assuming reject_unwanted_colors is defined
-        reject, reason = reject_unwanted_colors(seg, color_thresh=0.75, show_plot=False, index=i)
+        reject, reason = reject_unwanted_colors(seg, color_thresh=0.75, show_plot=False, index=i)  # Assume defined
         if reject:
             continue
 
         try:
-            # 1. Extract raw features
             features_raw = extract_all_features(seg,
-                                                hog_pixels_per_cell=HOG_PIXELS_PER_CELL_TEST,
-                                                hog_cells_per_block=HOG_CELLS_PER_BLOCK_TEST,
-                                                hog_orientations=HOG_ORIENTATIONS_TEST)
+                                               hog_pixels_per_cell=HOG_PIXELS_PER_CELL_TEST,
+                                               hog_cells_per_block=HOG_CELLS_PER_BLOCK_TEST,
+                                               hog_orientations=HOG_ORIENTATIONS_TEST)  # Assume defined
             features_raw_reshaped = features_raw.reshape(1, -1)
-
-            # 2. Scale features
             scaled_features = scaler_loaded.transform(features_raw_reshaped)
-
             pca_transformed_features = pca_loaded.transform(scaled_features)
-
-            # 3. Predict
-            pred = clf_loaded.predict(pca_transformed_features)[0] 
+            pred = clf_loaded.predict(pca_transformed_features)[0]
             predicted_labels_for_image.append(pred)
-
-        except Exception as e:
+        except Exception:
             continue
 
-    # Count chocolate types for the current image
-    label_counts = Counter(predicted_labels_for_image)
+    # Manual counting dictionary replacing Counter
+    label_counts = {}
+    for lbl in predicted_labels_for_image:
+        if lbl in label_counts:
+            label_counts[lbl] += 1
+        else:
+            label_counts[lbl] = 1
+
     result_row = {
         "id": os.path.splitext(fname)[0].replace("L", "")
     }
@@ -809,13 +775,13 @@ for fname in os.listdir(test_data_folder):
         try:
             numeric_label = list(label_mapping.keys())[list(label_mapping.values()).index(label_name)]
             result_row[label_name] = label_counts.get(numeric_label, 0)
-        except ValueError: 
+        except ValueError:
             print(f"Warning: Label '{label_name}' not found in label_mapping.")
             result_row[label_name] = 0
     results.append(result_row)
 
-# Save to CSV
-if results: 
+# Save results to CSV
+if results:
     df_results = pd.DataFrame(results)
     for col_name in ordered_labels:
         if col_name not in df_results.columns:
@@ -823,9 +789,8 @@ if results:
     final_columns = ["id"] + ordered_labels
     df_results = df_results[final_columns]
 
-    csv_output_path = "submission.csv" 
+    csv_output_path = "submission.csv"
     df_results.to_csv(csv_output_path, index=False)
-
 
     new_header_names = [
         "id", "Jelly White", "Jelly Milk", "Jelly Black", "Amandina", "Crème brulée",
@@ -833,17 +798,15 @@ if results:
         "Passion au lait", "Arabia", "Stracciatella"
     ]
 
-    # Check if new_header_names matches the order and count of ordered_labels
-    if len(new_header_names) -1 != len(ordered_labels): # -1 for 'id'
+    if len(new_header_names) - 1 != len(ordered_labels):
         print("Warning: new_header_names length does not match ordered_labels. CSV header might be incorrect.")
     else:
-
         try:
             with open(csv_output_path, 'r', newline='', encoding='utf-8') as f_in:
                 reader = csv.reader(f_in)
                 csv_rows = list(reader)
-            if csv_rows: # If file is not empty
-                csv_rows[0] = new_header_names # Replace header
+            if csv_rows:
+                csv_rows[0] = new_header_names
                 with open(csv_output_path, 'w', newline='', encoding='utf-8') as f_out:
                     writer = csv.writer(f_out)
                     writer.writerows(csv_rows)

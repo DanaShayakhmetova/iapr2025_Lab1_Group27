@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
-import joblib
+import pickle
 import matplotlib.pyplot as plt
 
 # Parameters
@@ -20,25 +20,21 @@ LBP_RADIUS = 1
 LBP_N_POINTS = 8 * LBP_RADIUS
 DEFAULT_BORDER_TYPE = cv2.BORDER_REFLECT_101
 
-# --- SCRIPT EXECUTION SETTINGS
 ENABLE_AUGMENTATION = True
 RUN_GRID_SEARCH = True     
 ENABLE_BACKGROUND_REMOVAL = True 
 
-# --- BACKGROUND REMOVAL PARAMETERS
 BG_REMOVE_ADAPTIVE_BLOCK_SIZE = 71
 BG_REMOVE_ADAPTIVE_C = 5          
 BG_REMOVE_MORPH_KERNEL_SIZE = (9,9)
 
-# --- HOG PARAMETERS 
 HOG_PIXELS_PER_CELL = (24, 24) 
 HOG_CELLS_PER_BLOCK = (2, 2)   
 HOG_ORIENTATIONS = 9          
 
-# --- PCA PARAMETER
 N_PCA_COMPONENTS = 0.95 
 
-# --- Utility Functions ---
+# Utility
 def resize_and_pad(img, desired_size, border_type=DEFAULT_BORDER_TYPE, pad_color=(0, 0, 0)):
     old_h, old_w = img.shape[:2]
     desired_h, desired_w = desired_size
@@ -85,7 +81,7 @@ def augment_image(image):
              augmented_image = cv2.warpAffine(augmented_image, M, (w_orig, h_orig), borderMode=DEFAULT_BORDER_TYPE)
     return augmented_image
 
-# --- Feature Extraction Functions ---
+# Feature Extraction Functions 
 def remove_background(img_bgr,
                       adaptive_block_size=BG_REMOVE_ADAPTIVE_BLOCK_SIZE,
                       adaptive_c=BG_REMOVE_ADAPTIVE_C,
@@ -203,7 +199,7 @@ def extract_all_features(img_bgr_segment, hog_pixels_per_cell, hog_cells_per_blo
     features = np.concatenate([hog_feat, lbp_feat, fourier_feat, color_feat])
     return features
 
-# --- Data Loading ---
+# Data Loading
 def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
                              hog_ppc=HOG_PIXELS_PER_CELL, hog_cpb=HOG_CELLS_PER_BLOCK, hog_orient=HOG_ORIENTATIONS):
     df = pd.read_csv(labels_csv)
@@ -241,7 +237,7 @@ def load_segments_and_labels(segment_folder, labels_csv, is_training=False,
             if len(f_vec) != first_len: raise ValueError(f"FATAL: Inconsistent feature length for {processed_files_info[i]}! Expected {first_len}, got {len(f_vec)}.")
     return np.array(X_features), np.array(y_labels)
 
-# --- Main Training Script ---
+# Main Training Script 
 if __name__ == '__main__':
 
     # idk why but this works only if you run it through main.py
@@ -329,18 +325,23 @@ if __name__ == '__main__':
 
     print("\n[PHASE 6: Saving Model, Scaler, and PCA Transformer]")    
 
-    model_filename = "classification_model/model.joblib"
-    scaler_filename = "classification_model/scaler.joblib"
-    pca_filename = "classification_model/pca.joblib"
+    model_filename = "classification_model/model.pkl"
+    scaler_filename = "classification_model/scaler.pkl"
+    pca_filename = "classification_model/pca.pkl"
 
     # same thing here:
-    # model_filename = "../classification_model/model.joblib"
-    # scaler_filename = "../classification_model/scaler.joblib"
-    # pca_filename = "../classification_model/pca.joblib"
+    # model_filename = "../classification_model/model.pkl"
+    # scaler_filename = "../classification_model/scaler.pkl"
+    # pca_filename = "../classification_model/pca.pkl"
 
-    joblib.dump(clf, model_filename)
-    joblib.dump(scaler, scaler_filename)
-    joblib.dump(pca, pca_filename)
+    with open(model_filename, 'wb') as f:
+        pickle.dump(clf, f)
+    with open(scaler_filename, 'wb') as f:
+        pickle.dump(scaler, f)
+    with open(pca_filename, 'wb') as f:
+        pickle.dump(pca, f)
+
+
     print(f"Model saved to {model_filename}")
     print(f"Scaler saved to {scaler_filename}")
     print(f"PCA transformer saved to {pca_filename}")
