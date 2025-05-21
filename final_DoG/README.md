@@ -54,7 +54,7 @@ If your files are organized as above, you are ready to run our script.
 
 ## After Running `main.py`
 
-You will also get a folder called `yolo_bounding_boxes` containing:
+You will also get a folder called `src/yolo_bounding_boxes` containing:
 
 - `chocolate_segments/`  
   Extracted segments of chocolates from train images
